@@ -134,7 +134,6 @@ class JudgeOptionSet extends judgeComponent {
     constructor(player, options) {
         super(player,options);
         this.optionList = options.optionList;
-        console.log(this.optionList)
         if (this.optionList){
             this.addButtons();
         }
@@ -215,7 +214,6 @@ const onPlayerReady = (player, options) => {
   judgeModalHandler.on('start_video', function(){
     console.log('start button clicked');
     judgeModalHandler.trigger('dispose_judge_ui')    
-    console.log('video started');
     player.play();
     player.addChild("PointButton");
     //Add in logic to remove any existing overlays?
