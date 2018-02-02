@@ -7,12 +7,36 @@ const defaults = {
 };
 
 const defaultJudgeOptions = [
-    "clean_red",
-    "fail_red",
-    "double",
-    "fail_blue",
-    "clean_blue",
-    "did_not_see"
+    {
+        "name":"clean_red",
+        "trigger":"request_target"
+    },
+    {
+        "name": "fail_red",
+        "trigger":"request_target"
+    },
+    {
+        "name": "double"
+    },
+    {
+        "name": "fail_blue",
+        "trigger":"request_target"
+    },
+    {
+        "name": "clean_blue",
+        "trigger":"request_target"
+    },
+    {
+        "name": "did_not_see",
+    }
+]
+
+const defaultTargetOptions = [
+    {"name":"no_quality"},
+    {"name":"quality"},
+    {"name":"target"},
+    {"name":"control"},
+    {"name":"did_not_see"}
 ]
 
 // Cross-compatibility for Video.js 5 and 6.
@@ -21,10 +45,33 @@ const registerPlugin = videojs.registerPlugin || videojs.plugin;
 
 
 const vjsButton = videojs.getComponent('Button');
+
+class judgeButton extends vjsButton {
+    constructor(player, options){
+        super(player, options);
+        var button = this;
+        judgeModalHandler.one("dispose_judge_ui", function(){
+            button.dispose();
+        })
+    }
+}
+
 const vjsComponent = videojs.getComponent('Component');
 
+class judgeComponent extends vjsComponent {
+    constructor(player, options){
+        super(player, options);
+        var component = this;
+        judgeModalHandler.one("dispose_judge_ui", function(){
+            component.dispose();
+        })
+    }
+}
 
-class JudgeStartButton extends vjsButton {
+const judgeModalHandler = new videojs.EventTarget();
+
+
+class JudgeStartButton extends judgeButton {
 
     constructor(player, options){
         super(player, options);
@@ -34,14 +81,11 @@ class JudgeStartButton extends vjsButton {
 
     handleClick(){
         // var countDown = player.addChild('CountDown');
-        console.log('start button clicked');
-        player.play();
-        player.addChild("PointButton");
-        this.dispose();
+        judgeModalHandler.trigger('start_video')
     }
 }
 
-class PointButton extends vjsButton {
+class PointButton extends judgeButton {
 
     constructor(player, options){
         super(player, options);
@@ -51,22 +95,17 @@ class PointButton extends vjsButton {
     }
 
     handleClick(){
-        var timestamp = player.currentTime();
-        console.log('point button clicked: ' + timestamp);        
-        player.pause();
-        player.addChild("JudgeOptionSet", {
-            "optionList": defaultJudgeOptions
-        })
-        this.dispose();
+        judgeModalHandler.trigger('point_called');
     }
 
 }
 
-class JudgeOptionButton extends vjsButton {
+class JudgeOptionButton extends judgeButton {
 
     constructor(player, options){
         super(player, options);
-        this.buttonName = options.buttonName ? options.buttonName : "generic-option"
+        this.buttonName = options.button["name"] ? options.button["name"] : "generic-option";
+        this.buttonTrigger = options.button["trigger"] ? options.button["trigger"] : "end_judge";
         this.controlText(this.buttonName);
         this.addClass('vjs-judge-option-button');
         console.log("Judge option added: " + this.buttonName);
@@ -74,11 +113,14 @@ class JudgeOptionButton extends vjsButton {
 
     handleClick() {
         console.log("Judge Option clicked: " + this.buttonName);
+        if(this.buttonTrigger){
+            judgeModalHandler.trigger(this.buttonTrigger);
+        }
     }
 
 }
 
-class CountDown extends vjsComponent {
+class CountDown extends judgeComponent {
 
     constructor(player, options){
         super(player, options);
@@ -87,7 +129,7 @@ class CountDown extends vjsComponent {
 }
 
 
-class JudgeOptionSet extends vjsComponent {
+class JudgeOptionSet extends judgeComponent {
 
     constructor(player, options) {
         super(player,options);
@@ -99,17 +141,16 @@ class JudgeOptionSet extends vjsComponent {
     }
 
     addButtons() { 
-        console.log('hit');
         for (var i = 0; i < this.optionList.length; i++) {
             var curButton = player.addChild("JudgeOptionButton", {
-                "buttonName": this.optionList[i]
+                "button": this.optionList[i]
             })
         }
     }
 }
 
 
-class ColorIndicator extends vjsComponent {
+class ColorIndicator extends judgeComponent {
 
     constructor(player, options){
         super(player, options)
@@ -145,16 +186,6 @@ const setupStartOverlay = (player, options) => {
         "color": options.colors.left, 
         "side": "left"
     })
-
-    startButton.on("dispose", function(){
-        rightIndicator.dispose();
-        leftIndicator.dispose();
-    })
-
-    startButton.on("click", function(){
-        player.addChild('CountDown', {"count": 2})
-    })
-
 }
 
 
@@ -174,9 +205,45 @@ const setupStartOverlay = (player, options) => {
  */
 const onPlayerReady = (player, options) => {
   player.addClass('vjs-judge-training');
-  setupStartOverlay(player, options)
-  
 
+  judgeModalHandler.on('load_new_video', function(){
+    console.log('Loading new video');
+    judgeModalHandler.trigger('dispose_judge_ui')    
+    setupStartOverlay(player, options)
+  })
+
+  judgeModalHandler.on('start_video', function(){
+    console.log('start button clicked');
+    judgeModalHandler.trigger('dispose_judge_ui')    
+    console.log('video started');
+    player.play();
+    player.addChild("PointButton");
+    //Add in logic to remove any existing overlays?
+  })
+
+  judgeModalHandler.on("point_called", function(){
+    judgeModalHandler.trigger('dispose_judge_ui')    
+    var timestamp = player.currentTime();
+    console.log('point button clicked: ' + timestamp);
+    player.pause();    
+    player.addChild("JudgeOptionSet", {
+        "optionList": defaultJudgeOptions
+        })
+    })
+
+  judgeModalHandler.on("request_target",function(){
+    judgeModalHandler.trigger('dispose_judge_ui')
+    player.addChild("JudgeOptionSet", {
+        "optionList": defaultTargetOptions
+    })
+  })
+
+  judgeModalHandler.on("end_judge", function(){
+        console.log('judging over');
+        judgeModalHandler.trigger('dispose_judge_ui');
+    })
+
+  judgeModalHandler.trigger('load_new_video');
 
 };
 
