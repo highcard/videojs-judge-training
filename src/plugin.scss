@@ -1,0 +1,77 @@
+// Sass for videojs-judge-training
+
+.video-js {
+
+  // This class is added to the video.js element by the plugin by default.
+  &.vjs-judge-training {
+    display: block;
+  }
+
+  .vjs-judge-start-button {
+    background-color: #333;
+    width: 150px;
+    height: 50px;
+    top: 75%;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+  }
+
+  .vjs-judge-point-button {
+    background-color: #333;
+    width: 150px;
+    height: 50px;
+    top: 75%;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+  }
+
+  .vjs-judge-option-button {
+    background-color: #333;
+    width: 100px;
+    height: 100px;
+    top: 25%;
+    margin: 10px;
+    display: inline-block;
+    float: left;
+  }
+
+  .vjs-judge-countdown {
+    background-color: #333333;
+    color: white;
+    position: relative;
+    font-size: 2em;
+    text-align: center;
+    width: 20%;
+    margin-top: 10%;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+  }
+
+  .vjs-judge-test-color-indicator {
+    width: 150px;
+    height: 150px;
+    display: block;
+    margin: 5px;
+    position: relative;
+}
+
+  .red {
+    background-color: red;
+  }
+
+  .blue {
+      background-color: blue;
+  }
+
+  .right {
+      float: right;
+  }
+
+  .left {
+      float: left;
+  }
+
+}
