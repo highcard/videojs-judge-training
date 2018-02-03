@@ -6,43 +6,71 @@ const defaults = {
     "controls": false
 };
 
+const defaultPointHaltDelay = 500 // 500ms delay between point and halt
+
 const defaultJudgeOptions = [
     {
         "name":"clean_red",
+        "displayName": "Clean Hit Red",
         "trigger":"request_target"
     },
     {
         "name": "fail_red",
+        "displayName": "Failure to Withdraw Red",
         "trigger":"request_target"
     },
     {
-        "name": "double"
+        "name": "open_double",
+        "displayName": "Open Double"
     },
     {
+        "name": "closed_double",
+        "displayName": "Closed Double"
+    },    
+    {
         "name": "fail_blue",
+        "displayName": "Failure to Withdraw Blue",
         "trigger":"request_target"
     },
     {
         "name": "clean_blue",
+        "displayName": "Clean Hit Blue",
         "trigger":"request_target"
     },
     {
         "name": "did_not_see",
+        "displayName": "Did not See"
     }
 ]
 
 const defaultTargetOptions = [
-    {"name":"no_quality"},
-    {"name":"quality"},
-    {"name":"target"},
-    {"name":"control"},
-    {"name":"did_not_see"}
+    {
+        "name":"no_quality",
+        "displayName": "No Quality",
+    },
+    {
+        "name":"quality",
+        "displayName": "Quality",
+    },
+    {
+        "name":"target",
+        "displayName": "Target",
+    },
+    {
+        "name":"control",
+        "displayName": "Control",
+    },
+    {
+        "name":"did_not_see",
+        "displayName": "Did not See",
+    }
 ]
 
 // Cross-compatibility for Video.js 5 and 6.
 const registerPlugin = videojs.registerPlugin || videojs.plugin;
 // const dom = videojs.dom || videojs;
 
+const judgeModalHandler = new videojs.EventTarget();
 
 const vjsButton = videojs.getComponent('Button');
 
@@ -50,6 +78,7 @@ class judgeButton extends vjsButton {
     constructor(player, options){
         super(player, options);
         var button = this;
+        button.addClass('vjs-judge-button')
         judgeModalHandler.one("dispose_judge_ui", function(){
             button.dispose();
         })
@@ -66,10 +95,25 @@ class judgeComponent extends vjsComponent {
             component.dispose();
         })
     }
+
 }
 
-const judgeModalHandler = new videojs.EventTarget();
+class ColorIndicator extends judgeComponent {
 
+    constructor(player, options){
+        super(player, options)
+        this.fencerColor = options.color;
+        this.addClass('vjs-judge-test-color-indicator')
+        if (options.side) {
+            this.addClass(options.side);
+        }
+        if (options.color) {
+            this.addClass(options.color);
+            let el = this.contentEl();
+            el.innerHTML = '<span class="vjs-judge-color-label">' + this.fencerColor + " fencer" + "</span";
+        }
+    }
+}
 
 class JudgeStartButton extends judgeButton {
 
@@ -91,31 +135,10 @@ class PointButton extends judgeButton {
         super(player, options);
         this.controlText('Call Point')
         this.addClass('vjs-judge-point-button');
-        console.log('point button loaded');
     }
 
     handleClick(){
         judgeModalHandler.trigger('point_called');
-    }
-
-}
-
-class JudgeOptionButton extends judgeButton {
-
-    constructor(player, options){
-        super(player, options);
-        this.buttonName = options.button["name"] ? options.button["name"] : "generic-option";
-        this.buttonTrigger = options.button["trigger"] ? options.button["trigger"] : "end_judge";
-        this.controlText(this.buttonName);
-        this.addClass('vjs-judge-option-button');
-        console.log("Judge option added: " + this.buttonName);
-    }
-
-    handleClick() {
-        console.log("Judge Option clicked: " + this.buttonName);
-        if(this.buttonTrigger){
-            judgeModalHandler.trigger(this.buttonTrigger);
-        }
     }
 
 }
@@ -129,6 +152,27 @@ class CountDown extends judgeComponent {
 }
 
 
+class JudgeOptionButton extends judgeButton {
+
+    constructor(player, options){
+        super(player, options);
+        this.buttonName = options.button["name"] ? options.button["name"] : "generic_button";
+        this.buttonDisplay = options.button["displayName"] ? options.button["displayName"] : this.buttonName;
+        this.buttonTrigger = options.button["trigger"] ? options.button["trigger"] : "end_judge";
+        this.controlText(this.buttonDisplay);
+        this.addClass('vjs-judge-option-button');
+        this.addClass(this.buttonName);
+    }
+
+    handleClick() {
+        console.log("Judge Option clicked: " + this.buttonName);
+        if(this.buttonTrigger){
+            judgeModalHandler.trigger(this.buttonTrigger);
+        }
+    }
+
+}
+
 class JudgeOptionSet extends judgeComponent {
 
     constructor(player, options) {
@@ -137,32 +181,16 @@ class JudgeOptionSet extends judgeComponent {
         if (this.optionList){
             this.addButtons();
         }
+        this.addClass('vjs-judge-option-set');
     }
 
     addButtons() { 
         for (var i = 0; i < this.optionList.length; i++) {
-            var curButton = player.addChild("JudgeOptionButton", {
+            var curButton = this.addChild("JudgeOptionButton", {
                 "button": this.optionList[i]
             })
         }
     }
-}
-
-
-class ColorIndicator extends judgeComponent {
-
-    constructor(player, options){
-        super(player, options)
-        this.addClass('vjs-judge-test-color-indicator')
-        if (options.side) {
-            this.addClass(options.side);
-        }
-        if (options.color) {
-            this.addClass(options.color);
-        }
-
-    }
-
 }
 
 videojs.registerComponent("JudgeStartButton", JudgeStartButton);
@@ -205,13 +233,13 @@ const setupStartOverlay = (player, options) => {
 const onPlayerReady = (player, options) => {
   player.addClass('vjs-judge-training');
 
-  judgeModalHandler.on('load_new_video', function(){
+  judgeModalHandler.one('load_new_video', function(){
     console.log('Loading new video');
     judgeModalHandler.trigger('dispose_judge_ui')    
     setupStartOverlay(player, options)
   })
 
-  judgeModalHandler.on('start_video', function(){
+  judgeModalHandler.one('start_video', function(){
     console.log('start button clicked');
     judgeModalHandler.trigger('dispose_judge_ui')    
     player.play();
@@ -219,24 +247,27 @@ const onPlayerReady = (player, options) => {
     //Add in logic to remove any existing overlays?
   })
 
-  judgeModalHandler.on("point_called", function(){
+  judgeModalHandler.one("point_called", function(){
     judgeModalHandler.trigger('dispose_judge_ui')    
     var timestamp = player.currentTime();
     console.log('point button clicked: ' + timestamp);
-    player.pause();    
-    player.addChild("JudgeOptionSet", {
-        "optionList": defaultJudgeOptions
-        })
+
+    setTimeout(function(){
+        player.pause();
+        player.addChild("JudgeOptionSet", {
+            "optionList": defaultJudgeOptions
+            })
+        }, 500)
     })
 
-  judgeModalHandler.on("request_target",function(){
+  judgeModalHandler.one("request_target",function(){
     judgeModalHandler.trigger('dispose_judge_ui')
     player.addChild("JudgeOptionSet", {
         "optionList": defaultTargetOptions
     })
   })
 
-  judgeModalHandler.on("end_judge", function(){
+  judgeModalHandler.one("end_judge", function(){
         console.log('judging over');
         judgeModalHandler.trigger('dispose_judge_ui');
     })

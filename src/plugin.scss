@@ -7,8 +7,19 @@
     display: block;
   }
 
-  .vjs-judge-start-button {
+  .vjs-judge-button {
     background-color: #333;
+
+    .vjs-control-text {
+      clip: auto;
+      width: auto;
+      height: auto;
+      position: relative;
+    }
+
+  }
+
+  .vjs-judge-start-button {
     width: 150px;
     height: 50px;
     top: 75%;
@@ -18,7 +29,6 @@
   }
 
   .vjs-judge-point-button {
-    background-color: #333;
     width: 150px;
     height: 50px;
     top: 75%;
@@ -27,8 +37,17 @@
     display: block;
   }
 
+  .vjs-judge-option-set {
+    width: 80%;
+    height: 80%;
+    top: 10%;
+    background-color: #ccc;
+    margin: auto;
+    position: relative;
+    padding: 10px;
+  }
+
   .vjs-judge-option-button {
-    background-color: #333;
     width: 100px;
     height: 100px;
     top: 25%;
@@ -54,9 +73,18 @@
     width: 150px;
     height: 150px;
     display: block;
-    margin: 5px;
+    margin: 40px;
     position: relative;
-}
+    border-radius: 50px;
+    text-align: center;
+  }
+
+  .vjs-judge-color-label {
+    font-size: 18px;
+    vertical-align: middle;
+    top: 60px;
+    position: relative;
+ }
 
   .red {
     background-color: red;
