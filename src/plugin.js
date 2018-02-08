@@ -14,8 +14,8 @@ const defaultJudgeOptions = [
         "displayName": "Clean Hit Red",
         "trigger":"request_target"
     },
-    {
-        "name": "fail_red",
+    
+{        "name": "fail_red",
         "displayName": "Failure to Withdraw Red",
         "trigger":"request_target"
     },
@@ -174,7 +174,6 @@ class JudgeOptionButton extends judgeButton {
 }
 
 class JudgeOptionSet extends judgeComponent {
-
     constructor(player, options) {
         super(player,options);
         this.optionList = options.optionList;
@@ -248,6 +247,7 @@ const onPlayerReady = (player, options) => {
   })
 
   judgeModalHandler.one("point_called", function(){
+    judgeModalHandler.off("video_ended");
     judgeModalHandler.trigger('dispose_judge_ui')    
     var timestamp = player.currentTime();
     console.log('point button clicked: ' + timestamp);
@@ -259,6 +259,14 @@ const onPlayerReady = (player, options) => {
             })
         }, 500)
     })
+
+  judgeModalHandler.one("video_ended", function(){
+    judgeModalHandler.off("point_called");
+    judgeModalHandler.trigger('dispose_judge_ui');
+    player.addChild("JudgeOptionSet", {
+        "optionList": defaultJudgeOptions
+    })    
+  })
 
   judgeModalHandler.one("request_target",function(){
     judgeModalHandler.trigger('dispose_judge_ui')
@@ -273,6 +281,10 @@ const onPlayerReady = (player, options) => {
     })
 
   judgeModalHandler.trigger('load_new_video');
+
+  player.one('ended', function(){
+    judgeModalHandler.trigger('video_ended');
+  })
 
 };
 
