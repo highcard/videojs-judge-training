@@ -1,5 +1,6 @@
 # videojs-judge-training
 
+IN PROGRESS. NON-FUNCTIONAL.
 Judge training overlays and functionality
 
 ## Installation
