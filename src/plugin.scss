@@ -15,45 +15,72 @@
       width: auto;
       height: auto;
       position: relative;
+      font-size: 1.5em;
+      font-weight: bold;
     }
+  }
 
+  .vjs-judge-bar {
+    position: absolute;
+    bottom: 0px;
+    width: 100%;
+  }
+
+  .vjs-judge-bottom-button {
+    width: 40%;
+    height: 50px;
+    top: 75%;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
   }
 
   .vjs-judge-start-button {
-    width: 150px;
-    height: 50px;
-    top: 75%;
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
+
   }
 
   .vjs-judge-point-button {
-    width: 150px;
-    height: 50px;
-    top: 75%;
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
+
   }
 
   .vjs-judge-option-set {
-    width: 80%;
-    height: 80%;
-    top: 10%;
+    width: 90%;
+    height: 90%;
+    top: 5%;
     background-color: #ccc;
     margin: auto;
     position: relative;
     padding: 10px;
+    border-radius: 5px;
   }
 
   .vjs-judge-option-button {
-    width: 100px;
+    width: 80%;
     height: 100px;
     top: 25%;
-    margin: 10px;
-    display: inline-block;
-    float: left;
+    margin: 10px auto;
+    display: block;
+    border-radius: 5px;
+    opacity: 0.7;
+  }
+
+  .vjs-judge-vertical-button-set {
+
+      &.left {
+        width: 30%;
+        float: left;
+        clear: left;
+      }
+      &.right {
+        width: 30%;
+        float: right;
+        clear: right;
+      }
+      &.center {
+        width: 30%;
+        margin-left: auto;
+        margin-right: auto;
+      }
   }
 
   .vjs-judge-countdown {
@@ -70,36 +97,30 @@
   }
 
   .vjs-judge-test-color-indicator {
-    width: 150px;
-    height: 150px;
+    width: 300px;
+    height: 20px;
     display: block;
-    margin: 40px;
-    position: relative;
-    border-radius: 50px;
+    margin: 0px;
+    position: absolute;
+    border-radius: 5px;
     text-align: center;
+    bottom: 0px;
+    opacity: 0.5;
+
+      &.right {
+          right: 0px;
+      }
+
+      &.left {
+          left: 0px;
+      }
+
   }
 
   .vjs-judge-color-label {
     font-size: 18px;
     vertical-align: middle;
-    top: 60px;
     position: relative;
  }
-
-  .red {
-    background-color: red;
-  }
-
-  .blue {
-      background-color: blue;
-  }
-
-  .right {
-      float: right;
-  }
-
-  .left {
-      float: left;
-  }
 
 }

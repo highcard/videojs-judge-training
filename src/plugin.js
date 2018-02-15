@@ -6,181 +6,252 @@ const defaults = {
     "controls": false
 };
 
-const defaultPointHaltDelay = 500 // 500ms delay between point and halt
-
-const defaultJudgeOptions = [
-    {
-        "name":"clean_red",
-        "displayName": "Clean Hit Red",
-        "trigger":"request_target"
-    },
-    
-{        "name": "fail_red",
-        "displayName": "Failure to Withdraw Red",
-        "trigger":"request_target"
-    },
-    {
-        "name": "open_double",
-        "displayName": "Open Double"
-    },
-    {
-        "name": "closed_double",
-        "displayName": "Closed Double"
-    },    
-    {
-        "name": "fail_blue",
-        "displayName": "Failure to Withdraw Blue",
-        "trigger":"request_target"
-    },
-    {
-        "name": "clean_blue",
-        "displayName": "Clean Hit Blue",
-        "trigger":"request_target"
-    },
-    {
-        "name": "did_not_see",
-        "displayName": "Did not See"
-    }
-]
-
-const defaultTargetOptions = [
-    {
-        "name":"no_quality",
-        "displayName": "No Quality",
-    },
-    {
-        "name":"quality",
-        "displayName": "Quality",
-    },
-    {
-        "name":"target",
-        "displayName": "Target",
-    },
-    {
-        "name":"control",
-        "displayName": "Control",
-    },
-    {
-        "name":"did_not_see",
-        "displayName": "Did not See",
-    }
-]
-
 // Cross-compatibility for Video.js 5 and 6.
 const registerPlugin = videojs.registerPlugin || videojs.plugin;
 // const dom = videojs.dom || videojs;
 
-const judgeModalHandler = new videojs.EventTarget();
+const judgeHandler = new videojs.EventTarget();
 
 const vjsButton = videojs.getComponent('Button');
+
+
+// Custom button that includes `vjs-judge-` prefix and adds handlers
 
 class judgeButton extends vjsButton {
     constructor(player, options){
         super(player, options);
         var button = this;
         button.addClass('vjs-judge-button')
-        judgeModalHandler.one("dispose_judge_ui", function(){
+        judgeHandler.one("dispose_judge_components", function(){
             button.dispose();
         })
+        judgeHandler.one("dispose_judge_buttons", function(){
+            button.dispose();
+        })        
     }
 }
 
 const vjsComponent = videojs.getComponent('Component');
 
-class judgeComponent extends vjsComponent {
+class JudgeComponent extends vjsComponent {
     constructor(player, options){
         super(player, options);
         var component = this;
-        judgeModalHandler.one("dispose_judge_ui", function(){
+        judgeHandler.one("dispose_judge_components", function(){
             component.dispose();
         })
+    }
+}
+
+videojs.registerComponent("JudgeComponent", JudgeComponent)
+
+class JudgeEntry extends JudgeComponent {
+    constructor(player, options){
+        super(player, options);
+        this.createdTimestamp = new Date().toISOString();
+        this.winnerColor = null;
+        this.sequenceChoice = null;
+        this.winnerPointChoice = null;
+        this.loserPointChoice = null;
+    }
+
+    setWinnerColor(color){
+        this.winnerColor = color;
+    }
+
+    setSequence(sequence){
+        this.sequenceChoice = sequence;
+    }
+
+    setWinnerPoint(point){
+        this.winnerPointChoice = point;
+    }
+
+    setLoserPointChoice(point){
+        this.loserPointChoice = point;
+    }
+
+    sendResults(){
+        console.log('results');
     }
 
 }
 
-class ColorIndicator extends judgeComponent {
+videojs.registerComponent("JudgeEntry", JudgeEntry)
+// const entryTracker = new videojs.JudgeEntry
+
+// Indicators on left/right sides of the screen indicating color of the fencer on that side
+class ColorIndicator extends JudgeComponent {
 
     constructor(player, options){
         super(player, options)
-        this.fencerColor = options.color;
         this.addClass('vjs-judge-test-color-indicator')
         if (options.side) {
             this.addClass(options.side);
         }
         if (options.color) {
-            this.addClass(options.color);
+            this.addClass("vjs-judge-color-indicator-" + options.color.name);
             let el = this.contentEl();
-            el.innerHTML = '<span class="vjs-judge-color-label">' + this.fencerColor + " fencer" + "</span";
+            el.setAttribute("style", 'background-color:#' + options.color.hex + ';')
+            el.innerHTML = '<span class="vjs-judge-color-label">' + options.color.name + " fencer" + "</span";
         }
     }
 }
 
+// Initial start button
 class JudgeStartButton extends judgeButton {
-
     constructor(player, options){
         super(player, options);
         this.controlText('Start Video')
         this.addClass('vjs-judge-start-button')
+        this.addClass('vjs-judge-bottom-button')
     }
 
     handleClick(){
-        // var countDown = player.addChild('CountDown');
-        judgeModalHandler.trigger('start_video')
+        judgeHandler.trigger('start_video')
     }
 }
 
+// Button used to call point
 class PointButton extends judgeButton {
-
     constructor(player, options){
         super(player, options);
         this.controlText('Call Point')
         this.addClass('vjs-judge-point-button');
+        this.addClass('vjs-judge-bottom-button');
     }
 
     handleClick(){
-        judgeModalHandler.trigger('point_called');
+        judgeHandler.trigger('point_called');
     }
 
 }
 
-class CountDown extends judgeComponent {
-
-    constructor(player, options){
-        super(player, options);
-        var curCount = options.count ? options.count : 3;
-    }
-}
-
+// Buttons used for displaying selection
 
 class JudgeOptionButton extends judgeButton {
-
     constructor(player, options){
         super(player, options);
-        this.buttonName = options.button["name"] ? options.button["name"] : "generic_button";
-        this.buttonDisplay = options.button["displayName"] ? options.button["displayName"] : this.buttonName;
-        this.buttonTrigger = options.button["trigger"] ? options.button["trigger"] : "end_judge";
-        this.controlText(this.buttonDisplay);
+        this.buttonName = options.choice["name"]
+        this.next_ui = options.choice["next_ui"];
+        this.button_id = options.choice["id"];
+        this.color_id = null;
+        let el = this.contentEl();
+        if (options.color != null){
+            this.buttonName += " " + options.color["name"];
+            el.setAttribute("style", 'background-color:#' + options.color["hex"] + ';')
+            this.color_id = options.color.color_id;
+        }
+        this.controlText(this.buttonName);
         this.addClass('vjs-judge-option-button');
-        this.addClass(this.buttonName);
     }
 
     handleClick() {
-        console.log("Judge Option clicked: " + this.buttonName);
-        if(this.buttonTrigger){
-            judgeModalHandler.trigger(this.buttonTrigger);
+        console.log("Judge Option clicked: " + this.button_id);
+        if (options.choice["next_ui"] != undefined && options.choice["next_ui"]) {
+            
         }
+
     }
 
 }
 
-class JudgeOptionSet extends judgeComponent {
+
+class PointChoiceUI extends JudgeComponent {
+    constructor(player, options) {
+        super(player, options);
+        this.options = options;
+
+        if(this.options[""])
+
+        var buttonColors = options.button_colors ? options.button_colors : options.indicator_colors
+        if (this.options.point_judge_choices) {
+            this.addHorizontalButtons(this.options.point_judge_choices);
+        }
+    }
+}
+
+
+
+/** Class representing a set of judge inputs **/
+class SequenceChoiceUI extends JudgeComponent {
+
+    /**
+     * Create the UI.
+     * @param {Player} player - The VideoJS Player object
+     * @param {object} options - The full set of options passed to the player
+     */
+
+
     constructor(player, options) {
         super(player,options);
-        this.optionList = options.optionList;
-        if (this.optionList){
-            this.addButtons();
+        this.options = options;
+
+        // Set button colors
+        var buttonColors = options.button_colors ? options.button_colors : options.indicator_colors;
+        console.log(options);
+        var set = this.options["initial_choice_set"];
+        var curSet = this.getChoices(set);
+        var curSetType = curSet["set_type"];
+
+        console.log(curSetType);
+
+        switch(curSetType){
+            case 'bothFightersExclusive':
+                this.addBothFightersExclusive(curSet.choices, buttonColors);
+                break;
+            case 'singleFighterExclusive':
+                this.addSingleFighterExlusive(curSet.choices, buttonColor);
+                break;
+            default:
+                console.log('no matching choice found')
         }
         this.addClass('vjs-judge-option-set');
+        var optionSet = this;
+    }
+
+    getChoices(choice_set){
+        return this.options[choice_set]
+    }
+
+    addBothFightersExclusive(choices, buttonColors){
+        var neutralChoices = choices.filter(choice => choice.neutral == true);
+        var fighterChoices = choices.filter(choice => choice.neutral != true);
+        this.addVerticalButtons(fighterChoices, buttonColors.left, "left");
+        this.addVerticalButtons(fighterChoices, buttonColors.right, "right");
+        this.addVerticalButtons(neutralChoices, null, "center");
+    }
+
+    addSingleFighterExclusive(choices, color){
+        console.log('single exclusive');
+        this.addHorizontalButtons(choices, color);
+    }
+
+    addVerticalButtons(choices, color, side) {
+        var curSection = this.addChild("JudgeComponent");
+        curSection.addClass("vjs-judge-vertical-button-set");
+        curSection.addClass(side);
+        console.log("addVerticalButtons");
+        console.log(choices);
+        console.log(choices.length);
+        for (var i = 0; i < choices.length; i++){
+            var curButton = curSection.addChild("JudgeOptionButton", {
+                choice: choices[i],
+                color: color
+            })
+        }
+    }
+
+    addHorizontalButtons(choices, color) {
+        var curSection = this.addChild("JudgeComponent");
+        curSection.addClass("vjs-judge-horizontal-button-set");
+        for (var i = 0; i< choices.length; i++){
+            var curButton = curSection.addChild("JudgeOptionButton", {
+                choice: choies[i],
+                color: color
+            })
+        }
+
     }
 
     addButtons() { 
@@ -192,26 +263,31 @@ class JudgeOptionSet extends judgeComponent {
     }
 }
 
+
 videojs.registerComponent("JudgeStartButton", JudgeStartButton);
 videojs.registerComponent("JudgeOptionButton", JudgeOptionButton);
 videojs.registerComponent("ColorIndicator", ColorIndicator);
-videojs.registerComponent("CountDown", CountDown)
-videojs.registerComponent("JudgeOptionSet", JudgeOptionSet)
+videojs.registerComponent("SequenceChoiceUI", SequenceChoiceUI)
 videojs.registerComponent("PointButton", PointButton)
 
 
 const setupStartOverlay = (player, options) => {
-    var startButton = player.addChild('JudgeStartButton')
-
-    var rightIndicator = player.addChild('ColorIndicator', {
-        "color": options.colors.right, 
+    var judge_ui = player.addChild('JudgeComponent')
+    judge_ui.addClass("vjs-judge-bar")
+    var startButton = judge_ui.addChild('JudgeStartButton')
+    var rightIndicator = judge_ui.addChild('ColorIndicator', {
+        "color": options.indicator_colors.right,
         "side": "right"
     })
 
-    var leftIndicator = player.addChild('ColorIndicator', {
-        "color": options.colors.left, 
+    var leftIndicator = judge_ui.addChild('ColorIndicator', {
+        "color": options.indicator_colors.left,
         "side": "left"
     })
+
+true 
+    return judge_ui
+
 }
 
 
@@ -232,58 +308,52 @@ const setupStartOverlay = (player, options) => {
 const onPlayerReady = (player, options) => {
   player.addClass('vjs-judge-training');
 
-  judgeModalHandler.one('load_new_video', function(){
+  var judge_ui;
+
+  judgeHandler.one('load_new_video', function(){
     console.log('Loading new video');
-    judgeModalHandler.trigger('dispose_judge_ui')    
-    setupStartOverlay(player, options)
+    judgeHandler.trigger('dispose_judge_components')
+    judge_ui = setupStartOverlay(player, options)
   })
 
-  judgeModalHandler.one('start_video', function(){
+  judgeHandler.one('start_video', function(){
     console.log('start button clicked');
-    judgeModalHandler.trigger('dispose_judge_ui')    
+    judgeHandler.trigger('dispose_judge_buttons')
     player.play();
-    player.addChild("PointButton");
-    //Add in logic to remove any existing overlays?
+    judge_ui.addChild("PointButton");
   })
 
-  judgeModalHandler.one("point_called", function(){
-    judgeModalHandler.off("video_ended");
-    judgeModalHandler.trigger('dispose_judge_ui')    
+  judgeHandler.one("point_called", function(){
+    judgeHandler.off("video_ended");
+    judgeHandler.trigger('dispose_judge_buttons')
     var timestamp = player.currentTime();
     console.log('point button clicked: ' + timestamp);
 
     setTimeout(function(){
         player.pause();
-        player.addChild("JudgeOptionSet", {
-            "optionList": defaultJudgeOptions
-            })
-        }, 500)
+        player.addChild("SequenceChoiceUI", options)
+        }, options.afterblow_delay)
     })
 
-  judgeModalHandler.one("video_ended", function(){
-    judgeModalHandler.off("point_called");
-    judgeModalHandler.trigger('dispose_judge_ui');
-    player.addChild("JudgeOptionSet", {
-        "optionList": defaultJudgeOptions
-    })    
+  judgeHandler.one("video_ended", function(){
+    judgeHandler.off("point_called");
+    judgeHandler.trigger('dispose_judge_buttons');
+    player.addChild("SequenceChoiceUI", options)    
   })
 
-  judgeModalHandler.one("request_target",function(){
-    judgeModalHandler.trigger('dispose_judge_ui')
-    player.addChild("JudgeOptionSet", {
-        "optionList": defaultTargetOptions
-    })
+  judgeHandler.one("request_target",function(){
+    judgeHandler.trigger('dispose_judge_buttons')
+    player.addChild("SequenceChoiceUI", options)
   })
 
-  judgeModalHandler.one("end_judge", function(){
+  judgeHandler.one("end_judge", function(){
         console.log('judging over');
-        judgeModalHandler.trigger('dispose_judge_ui');
     })
 
-  judgeModalHandler.trigger('load_new_video');
+  judgeHandler.trigger('load_new_video');
 
   player.one('ended', function(){
-    judgeModalHandler.trigger('video_ended');
+    judgeHandler.trigger('video_ended');
   })
 
 };

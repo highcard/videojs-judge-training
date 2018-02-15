@@ -9,8 +9,8 @@
   <link href="dist/videojs-judge-training.css" rel="stylesheet">
 
   <video id="videojs-judge-training-player" class="video-js vjs-default-skin" width="1080" height="608">
-    <source src="//s3.amazonaws.com/hema-judge-training/exchange_1337.mp4" type='video/mp4'>
-    <source src="//s3.amazonaws.com/hema-judge-training/exchange_1337.webm" type='video/webm'>
+    <source src="media/exchange_1337.mp4" type='video/mp4'>
+    <source src="media/exchange_1337.webm" type='video/webm'>
   </video>
 
 
@@ -25,10 +25,91 @@
     (function(window, videojs) {
 
       var options = {
-        colors: {
-          left: "red",
-          right: "blue"
+        form_url: "",
+        token: "",
+        indicator_colors: {
+          left: {
+            name: "red",
+            hex: "ff0000",
+            color_id: 1,
+          },
+          right: {
+            name: "blue",
+            hex: "0000ff",
+            color_id: 2,
+          }
+        },
+        button_colors: {
+          right: {
+            name: "red",
+            hex: "ff0000",
+            color_id: 1,
+          },
+          left: {
+            name: "blue",
+            hex: "0000ff",
+            color_id: 2,
+          }
+        },
+        afterblow_delay: 500, //ms
+        initial_choice_set: "sequence_judge_choices",
+        sequence_judge_choices: {
+          name: "sequenceJudgeChoices",
+          set_type: "bothFightersExclusive",
+          choices: [
+            {
+              name: "Clean hit",
+              next_ui: "point_judge_choices",
+              id: 1
+            },
+            {
+              name: "Failure to withdraw",
+              next_ui: "point_judge_choices",
+              id: 2,
+            },
+            {
+              name: "Ringout",
+              id: 3,
+            },
+            {
+              name: "Double",
+              id: 4,
+              neutral: true,
+            },
+            {
+              name: "No exchange",
+              id: 5,
+              neutral: true,
+            },
+            {
+              name: "Did not see",
+              id: 6,
+              neutral: true,
+            },
+            {
+              name: "whatever",
+              id: 7,
+              neutral: true,
+            },
+          ],
+        },
+        point_judge_choices: {
+          choices: [
+            {
+              name: "foobar",
+              id: 8,
+            },
+            {
+              name: "youbar",
+              id: 9,
+            },
+            {
+              name: "doobar",
+              id: 10,
+            },
+          ]
         }
+
       }
 
       var player = window.player = videojs('videojs-judge-training-player');
